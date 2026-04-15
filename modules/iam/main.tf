@@ -1,4 +1,6 @@
 # Role de execução das tasks ECS (pull de imagem, logs)
+
+
 resource "aws_iam_role" "ecs_task_execution" {
   name               = "ecsTaskExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.assume_role_policy_task.json
@@ -15,6 +17,8 @@ data "aws_iam_policy_document" "assume_role_policy_task" {
 }
 
 # Anexa a policy gerenciada da AWS para execução de tasks ECS
+
+
 resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   count      = length(var.ecs_task_service_policies)
   role       = aws_iam_role.ecs_task_execution.name
@@ -22,6 +26,8 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 }
 
 # Permissões adicionais: pull do ECR e escrita de logs no CloudWatch
+
+
 resource "aws_iam_role_policy" "ecs_task_execution_ecr" {
   name   = "ecs-task-execution-ecr-policy"
   role   = aws_iam_role.ecs_task_execution.name
@@ -43,6 +49,8 @@ resource "aws_iam_role_policy" "ecs_task_execution_ecr" {
 }
 
 # Role das instâncias EC2 que compõem o cluster ECS
+
+
 resource "aws_iam_role" "ecs_instance" {
   name               = "ecsInstanceRole"
   assume_role_policy = data.aws_iam_policy_document.assume_role_policy_instance.json
@@ -59,6 +67,8 @@ data "aws_iam_policy_document" "assume_role_policy_instance" {
 }
 
 # Anexa a policy gerenciada da AWS para instâncias no cluster ECS
+
+
 resource "aws_iam_role_policy_attachment" "ecs_instance" {
   count      = length(var.ecs_instance_policies)
   role       = aws_iam_role.ecs_instance.name
@@ -66,6 +76,8 @@ resource "aws_iam_role_policy_attachment" "ecs_instance" {
 }
 
 # Permissões adicionais: pull do ECR e escrita de logs no CloudWatch
+
+
 resource "aws_iam_role_policy" "ecs_instance_ecr" {
   name   = "ecs-instance-ecr-policy"
   role   = aws_iam_role.ecs_instance.name
