@@ -87,3 +87,8 @@ variable "image_tag" {
   type    = string
   description = "Tag da imagem (ex: git SHA ou semver)"
 }
+
+variable "aws_region" {
+  type    = string
+  description = "Região AWS"
+}
