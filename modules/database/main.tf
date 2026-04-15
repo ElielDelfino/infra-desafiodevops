@@ -41,7 +41,7 @@ resource "aws_db_instance" "this" {
   multi_az               = false
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [aws_security_group.db.id]
-  deletion_protection    = true
+  deletion_protection    = false
   publicly_accessible    = false
   backup_retention_period = 0
   auto_minor_version_upgrade = true
