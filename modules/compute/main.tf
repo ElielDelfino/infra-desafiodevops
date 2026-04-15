@@ -236,7 +236,7 @@ resource "aws_ecs_service" "app" {
   launch_type                        = "EC2"
 
   # Grace period para a API ter tempo de inicializar antes do ALB checar saúde
-  health_check_grace_period_seconds = 120
+  health_check_grace_period_seconds = 60
 
   # Associa o serviço ao ALB via target group
   load_balancer {
