@@ -245,6 +245,11 @@ resource "aws_ecs_service" "app" {
     container_port   = var.container_port_nginx
   }
 
+  # Ignorar mudanças de task_definition para nao reverter deploys feitos pelo workflow do app 
+  lifecycle{
+    ignore_changes = [task_definition]
+  }
+
   depends_on = [
     aws_autoscaling_group.ecs,
     aws_lb_listener.http
