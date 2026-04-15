@@ -54,4 +54,5 @@ module "compute" {
   postgres_uri              = "postgres://${var.db_username}:${var.db_password}@${module.database.db_endpoint}/${var.db_name}?sslmode=no-verify"
   jwt_secret                = var.jwt_secret
   image_tag                  = var.image_tag
+  aws_region                 = var.aws_region
 }
