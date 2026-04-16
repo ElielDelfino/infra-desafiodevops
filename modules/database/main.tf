@@ -20,11 +20,15 @@ resource "aws_security_group" "db" {
   tags = {
     Name = "db-sg"
   }
+
+  depends_on = [aws_db_instance.this]
 }
 
 resource "aws_db_subnet_group" "this" {
   name       = "db-subnet-group"
   subnet_ids = var.private_subnet_ids
+
+  depends_on = [aws_db_instance.this]
 }
 
 resource "aws_db_instance" "this" {
