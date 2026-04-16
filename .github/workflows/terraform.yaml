@@ -62,9 +62,11 @@ jobs:
         run: terraform init -upgrade
 
       - name: Terraform Validate
+        if: github.event.inputs.destroy != 'true'
         run: terraform validate
 
       - name: Terraform Plan
+        if: github.event.inputs.destroy != 'true'
         run: terraform plan -out=tfplan.tfout
 
       - name: Terraform Apply
