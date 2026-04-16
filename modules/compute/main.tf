@@ -246,8 +246,8 @@ resource "aws_ecs_service" "app" {
   }
 
   # Ignorar mudanças de task_definition para nao reverter deploys feitos pelo workflow do app 
-  lifecycle{
-    ignore_changes = [task_definition]
+  lifecycle {
+    ignore_changes = [task_definition, desired_count]
   }
 
   depends_on = [

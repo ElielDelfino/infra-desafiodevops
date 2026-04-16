@@ -75,6 +75,27 @@ jobs:
         if: github.event.inputs.plan_destroy == 'true'
         run: terraform plan -destroy
 
+      - name: Pre-Destroy - Scale down ECS services
+        if: github.event.inputs.destroy == 'true'
+        run: |
+          CLUSTER="${{ secrets.TF_VAR_ECS_CLUSTER_NAME }}"
+          REGION="${{ secrets.TF_VAR_AWS_REGION }}"
+          SERVICES=$(aws ecs list-services --cluster "$CLUSTER" --region "$REGION" --query 'serviceArns[]' --output text 2>/dev/null || true)
+          if [ -n "$SERVICES" ]; then
+            for SVC in $SERVICES; do
+              aws ecs update-service --cluster "$CLUSTER" --service "$SVC" --desired-count 0 --region "$REGION"
+            done
+            echo "Aguardando tasks drenarem..."
+            for SVC in $SERVICES; do
+              aws ecs wait services-stable --cluster "$CLUSTER" --services "$SVC" --region "$REGION" || true
+            done
+          fi
+
       - name: Terraform Destroy
         if: github.event.inputs.destroy == 'true'
-        run: terraform destroy --auto-approve
+        run: |
+          terraform destroy --auto-approve || {
+            echo "Primeira tentativa falhou (possivelmente ENIs do ALB ainda sendo liberadas). Aguardando 60s e tentando novamente..."
+            sleep 60
+            terraform destroy --auto-approve
+          }
