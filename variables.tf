@@ -15,4 +15,4 @@ variable "jwt_secret" {
   sensitive = true
   default   = "change-me-in-production"
 }
-variable "image_tag" { type = string }
+variable "initial_image_tag" { type = string }

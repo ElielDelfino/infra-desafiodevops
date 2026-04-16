@@ -44,7 +44,7 @@ jobs:
       TF_VAR_ecs_cluster_name: ${{ secrets.TF_VAR_ECS_CLUSTER_NAME }}
       TF_VAR_app_name: ${{ secrets.TF_VAR_APP_NAME }}
       TF_VAR_jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
-      TF_VAR_image_tag: ${{ secrets.TF_VAR_IMAGE_TAG }}
+      TF_VAR_initial_image_tag: ${{ secrets.TF_VAR_INITIAL_IMAGE_TAG }}
 
     steps:
       - uses: actions/checkout@v4

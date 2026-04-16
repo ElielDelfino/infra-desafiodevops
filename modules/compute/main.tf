@@ -180,7 +180,7 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = "backend"
-      image     = "${var.container_image_backend}:${var.image_tag}"
+      image     = "${var.container_image_backend}:${var.initial_image_tag}"
       cpu       = 192
       memory    = 384
       # hostPort fixo para que o nginx consiga alcançar o backend via 172.17.0.1
@@ -208,7 +208,7 @@ resource "aws_ecs_task_definition" "app" {
     },
     {
       name      = "nginx"
-      image     = "${var.container_image_nginx}:${var.image_tag}"
+      image     = "${var.container_image_nginx}:${var.initial_image_tag}"
       cpu       = 128
       memory    = 192
       # hostPort 80 é a porta que o ALB vai bater no health check e encaminhar tráfego

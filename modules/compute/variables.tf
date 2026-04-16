@@ -82,10 +82,10 @@ variable "public_subnet_ids" {
   description = "Subnets públicas para o ALB"
   type        = list(string)
 }
-# Imagens do ECR para backend e nginx, com tag dinâmica 
-variable "image_tag" {
-  type    = string
-  description = "Tag da imagem (ex: git SHA ou semver)"
+# Usada apenas no primeiro apply. Após isso, o workflow controla a tag via task definition.
+variable "initial_image_tag" {
+  type        = string
+  description = "Tag inicial das imagens (ex: latest). Deployments posteriores usam o SHA do commit."
 }
 
 variable "aws_region" {
