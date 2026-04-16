@@ -11,4 +11,4 @@ db_allocated_storage = 20
 ecs_cluster_name = "my-ecs-cluster"
 app_name = "my-app"
 jwt_secret = "dev_jwt_secret_change_me"
-image_tag = "placeholder"
+initial_image_tag = "placeholder"
