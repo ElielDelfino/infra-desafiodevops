@@ -77,61 +77,41 @@ jobs:
         if: github.event.inputs.plan_destroy == 'true'
         run: terraform plan -destroy
 
-      - name: Pre-Destroy - Scale down ECS services and ASG
+      - name: Pre-Destroy
         if: github.event.inputs.destroy == 'true'
         run: |
           CLUSTER="${{ secrets.TF_VAR_ECS_CLUSTER_NAME }}"
           REGION="${{ secrets.TF_VAR_AWS_REGION }}"
-
-          # 1. Escala ECS services para 0 e deleta
-          SERVICES=$(aws ecs list-services --cluster "$CLUSTER" --region "$REGION" --query 'serviceArns[]' --output text 2>/dev/null || true)
-          if [ -n "$SERVICES" ]; then
-            for SVC in $SERVICES; do
-              aws ecs update-service --cluster "$CLUSTER" --service "$SVC" --desired-count 0 --region "$REGION"
-            done
-            echo "Aguardando tasks drenarem..."
-            for SVC in $SERVICES; do
-              aws ecs wait services-stable --cluster "$CLUSTER" --services "$SVC" --region "$REGION" || true
-            done
-            echo "Deletando serviços ECS..."
-            for SVC in $SERVICES; do
-              aws ecs delete-service --cluster "$CLUSTER" --service "$SVC" --force --region "$REGION" || true
-            done
-          fi
-
-          # 2. Escala ASG para 0 para terminar as EC2 e liberar ENIs/SGs
-          ASG_NAME="${CLUSTER}-asg"
-          ASG_EXISTS=$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names "$ASG_NAME" --region "$REGION" --query 'AutoScalingGroups[0].AutoScalingGroupName' --output text 2>/dev/null || true)
-          if [ "$ASG_EXISTS" != "None" ] && [ -n "$ASG_EXISTS" ]; then
-            echo "Escalando ASG $ASG_NAME para 0..."
-            aws autoscaling update-auto-scaling-group --auto-scaling-group-name "$ASG_NAME" --min-size 0 --max-size 0 --desired-capacity 0 --region "$REGION"
-            echo "Aguardando instâncias terminarem..."
-            for i in $(seq 1 24); do
-              COUNT=$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names "$ASG_NAME" --region "$REGION" --query 'AutoScalingGroups[0].Instances | length(@)' --output text 2>/dev/null || echo "0")
-              [ "$COUNT" = "0" ] && break
-              echo "  $COUNT instância(s) ainda ativas, aguardando... ($i/24)"
-              sleep 15
-            done
-            # Aguarda extra para ENIs serem liberadas
-            sleep 30
-          fi
-
-          # 3. Desregistra container instances do cluster ECS
-          INSTANCES=$(aws ecs list-container-instances --cluster "$CLUSTER" --region "$REGION" --query 'containerInstanceArns[]' --output text 2>/dev/null || true)
-          if [ -n "$INSTANCES" ]; then
-            echo "Desregistrando container instances do cluster..."
-            for CI in $INSTANCES; do
-              aws ecs deregister-container-instance --cluster "$CLUSTER" --container-instance "$CI" --force --region "$REGION" || true
-            done
-          fi
-
-          # 4. Deleta instância RDS e aguarda conclusão
           DB_ID="app-postgres"
+
+          # 1. Deleta serviços ECS (força, sem esperar draining)
+          SERVICES=$(aws ecs list-services --cluster "$CLUSTER" --region "$REGION" --query 'serviceArns[]' --output text 2>/dev/null || true)
+          for SVC in $SERVICES; do
+            aws ecs update-service --cluster "$CLUSTER" --service "$SVC" --desired-count 0 --region "$REGION" || true
+            aws ecs delete-service --cluster "$CLUSTER" --service "$SVC" --force --region "$REGION" || true
+          done
+
+          # 2. Termina instâncias EC2 do ASG
+          ASG_NAME="${CLUSTER}-asg"
+          aws autoscaling update-auto-scaling-group --auto-scaling-group-name "$ASG_NAME" --min-size 0 --max-size 0 --desired-capacity 0 --region "$REGION" 2>/dev/null || true
+          for i in $(seq 1 20); do
+            COUNT=$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names "$ASG_NAME" --region "$REGION" --query 'AutoScalingGroups[0].Instances | length(@)' --output text 2>/dev/null || echo "0")
+            [ "$COUNT" = "0" ] && break
+            echo "Aguardando EC2s terminarem... ($COUNT restantes)"
+            sleep 15
+          done
+
+          # 3. Desregistra container instances
+          INSTANCES=$(aws ecs list-container-instances --cluster "$CLUSTER" --region "$REGION" --query 'containerInstanceArns[]' --output text 2>/dev/null || true)
+          for CI in $INSTANCES; do
+            aws ecs deregister-container-instance --cluster "$CLUSTER" --container-instance "$CI" --force --region "$REGION" || true
+          done
+
+          # 4. Deleta RDS e aguarda
           DB_STATUS=$(aws rds describe-db-instances --db-instance-identifier "$DB_ID" --region "$REGION" --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null || echo "not-found")
           if [ "$DB_STATUS" != "not-found" ] && [ "$DB_STATUS" != "None" ]; then
-            echo "Deletando RDS $DB_ID..."
             aws rds delete-db-instance --db-instance-identifier "$DB_ID" --skip-final-snapshot --region "$REGION" || true
-            echo "Aguardando RDS ser deletado (pode levar ~5min)..."
+            echo "Aguardando RDS ser deletado..."
             aws rds wait db-instance-deleted --db-instance-identifier "$DB_ID" --region "$REGION" || true
           fi
 
