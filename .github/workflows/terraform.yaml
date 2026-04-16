@@ -102,7 +102,12 @@ jobs:
             echo "Escalando ASG $ASG_NAME para 0..."
             aws autoscaling update-auto-scaling-group --auto-scaling-group-name "$ASG_NAME" --min-size 0 --max-size 0 --desired-capacity 0 --region "$REGION"
             echo "Aguardando instâncias terminarem..."
-            aws autoscaling wait group-in-service --auto-scaling-group-name "$ASG_NAME" --region "$REGION" || true
+            for i in $(seq 1 24); do
+              COUNT=$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names "$ASG_NAME" --region "$REGION" --query 'AutoScalingGroups[0].Instances | length(@)' --output text 2>/dev/null || echo "0")
+              [ "$COUNT" = "0" ] && break
+              echo "  $COUNT instância(s) ainda ativas, aguardando... ($i/24)"
+              sleep 15
+            done
             # Aguarda extra para ENIs serem liberadas
             sleep 30
           fi
