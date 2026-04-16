@@ -125,6 +125,16 @@ jobs:
             done
           fi
 
+          # 4. Deleta instância RDS e aguarda conclusão
+          DB_ID="app-postgres"
+          DB_STATUS=$(aws rds describe-db-instances --db-instance-identifier "$DB_ID" --region "$REGION" --query 'DBInstances[0].DBInstanceStatus' --output text 2>/dev/null || echo "not-found")
+          if [ "$DB_STATUS" != "not-found" ] && [ "$DB_STATUS" != "None" ]; then
+            echo "Deletando RDS $DB_ID..."
+            aws rds delete-db-instance --db-instance-identifier "$DB_ID" --skip-final-snapshot --region "$REGION" || true
+            echo "Aguardando RDS ser deletado (pode levar ~5min)..."
+            aws rds wait db-instance-deleted --db-instance-identifier "$DB_ID" --region "$REGION" || true
+          fi
+
       - name: Terraform Destroy
         if: github.event.inputs.destroy == 'true'
         run: |
