@@ -28,6 +28,35 @@ Expõe os valores mais relevantes após o `terraform apply`: ID da VPC, subnets 
 
 Cada módulo possui seu próprio `README.md` com detalhes dos recursos, variáveis e outputs.
 
+## Ordem de Deploy (Primeira vez)
+
+O ECS precisa das imagens no ECR antes de subir o serviço. Por isso o deploy inicial segue três passos:
+
+**Passo 1 — Subir ECR e IAM**
+```bash
+terraform init
+terraform apply -var-file="env/dev.tfvars" -target=module.ecr -target=module.iam
+```
+
+**Passo 2 — Fazer push das imagens**
+
+Acesse o repositório da aplicação (`app-desafiodevops`) e dispare o workflow manualmente via GitHub Actions (`workflow_dispatch`). Ao final, copie o SHA do commit usado no build (visível nos logs ou na URL do run).
+
+**Passo 3 — Subir o restante da infra**
+
+Edite `env/dev.tfvars` e substitua `initial_image_tag` pelo SHA copiado no passo anterior:
+
+```hcl
+initial_image_tag = "abc1234..."  # SHA do commit do primeiro build
+```
+
+Depois aplique:
+```bash
+terraform apply -var-file="env/dev.tfvars"
+```
+
+A partir daqui, novos deploys são feitos exclusivamente pelo workflow da aplicação, sem necessidade de rodar o Terraform novamente.
+
 ## Ambiente
 
 As variáveis de ambiente são definidas em `env/dev.tfvars`. Para aplicar:
