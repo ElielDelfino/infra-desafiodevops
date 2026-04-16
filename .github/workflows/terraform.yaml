@@ -83,7 +83,7 @@ jobs:
           CLUSTER="${{ secrets.TF_VAR_ECS_CLUSTER_NAME }}"
           REGION="${{ secrets.TF_VAR_AWS_REGION }}"
 
-          # 1. Escala ECS services para 0
+          # 1. Escala ECS services para 0 e deleta
           SERVICES=$(aws ecs list-services --cluster "$CLUSTER" --region "$REGION" --query 'serviceArns[]' --output text 2>/dev/null || true)
           if [ -n "$SERVICES" ]; then
             for SVC in $SERVICES; do
@@ -92,6 +92,10 @@ jobs:
             echo "Aguardando tasks drenarem..."
             for SVC in $SERVICES; do
               aws ecs wait services-stable --cluster "$CLUSTER" --services "$SVC" --region "$REGION" || true
+            done
+            echo "Deletando serviços ECS..."
+            for SVC in $SERVICES; do
+              aws ecs delete-service --cluster "$CLUSTER" --service "$SVC" --force --region "$REGION" || true
             done
           fi
 
