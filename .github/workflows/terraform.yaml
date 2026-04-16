@@ -112,6 +112,15 @@ jobs:
             sleep 30
           fi
 
+          # 3. Desregistra container instances do cluster ECS
+          INSTANCES=$(aws ecs list-container-instances --cluster "$CLUSTER" --region "$REGION" --query 'containerInstanceArns[]' --output text 2>/dev/null || true)
+          if [ -n "$INSTANCES" ]; then
+            echo "Desregistrando container instances do cluster..."
+            for CI in $INSTANCES; do
+              aws ecs deregister-container-instance --cluster "$CLUSTER" --container-instance "$CI" --force --region "$REGION" || true
+            done
+          fi
+
       - name: Terraform Destroy
         if: github.event.inputs.destroy == 'true'
         run: |
